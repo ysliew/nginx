@@ -392,6 +392,70 @@
       font-weight: 700;
       letter-spacing: 0.5px;
     }
+
+    /* ── D-Pad ── */
+    .dpad-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .dpad-row {
+      display: flex;
+      gap: 4px;
+    }
+
+    .dpad-btn {
+      width: 64px;
+      height: 64px;
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-size: 1.6rem;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.08s, border-color 0.08s, transform 0.08s;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .dpad-btn:active,
+    .dpad-btn.pressed {
+      background: rgba(0,255,136,0.15);
+      border-color: var(--accent);
+      transform: scale(0.93);
+    }
+
+    .dpad-center {
+      width: 64px;
+      height: 64px;
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-size: 1rem;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.08s, border-color 0.08s;
+    }
+
+    .dpad-center:active { background: rgba(255,215,0,0.15); border-color: var(--gold); }
+
+    @media (max-width: 620px) {
+      .dpad-btn { width: 72px; height: 72px; font-size: 1.8rem; }
+      .dpad-center { width: 72px; height: 72px; }
+    }
   </style>
 </head>
 <body>
@@ -453,8 +517,23 @@
       <button class="btn-icon" id="musicBtn" title="Toggle Music" onclick="toggleMusic()">🎵</button>
     </div>
 
+    <!-- D-Pad on-screen controls -->
+    <div class="dpad-wrap" id="dpad">
+      <div class="dpad-row">
+        <button class="dpad-btn" id="btn-up"    aria-label="Up">▲</button>
+      </div>
+      <div class="dpad-row">
+        <button class="dpad-btn" id="btn-left"  aria-label="Left">◀</button>
+        <button class="dpad-center" id="btn-pause" aria-label="Pause" onclick="pauseGame()">⏸</button>
+        <button class="dpad-btn" id="btn-right" aria-label="Right">▶</button>
+      </div>
+      <div class="dpad-row">
+        <button class="dpad-btn" id="btn-down"  aria-label="Down">▼</button>
+      </div>
+    </div>
+
     <div style="font-size:0.72rem;color:var(--muted);text-align:center">
-      Arrow keys / WASD to steer &nbsp;|&nbsp; P to pause &nbsp;|&nbsp; Mobile: swipe
+      Arrow keys / WASD / D-pad to steer &nbsp;|&nbsp; P to pause
     </div>
   </div>
 
@@ -1023,6 +1102,36 @@ document.addEventListener('keydown', (e) => {
   // Prevent reversing
   if (d.x === -dir.x && d.y === -dir.y) return;
   nextDir = d;
+});
+
+// ── D-Pad buttons ──
+const DPAD_MAP = {
+  'btn-up':    { x: 0, y: -1 },
+  'btn-down':  { x: 0, y:  1 },
+  'btn-left':  { x: -1, y: 0 },
+  'btn-right': { x:  1, y: 0 },
+};
+
+Object.entries(DPAD_MAP).forEach(([id, d]) => {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+
+  function press(e) {
+    e.preventDefault();
+    btn.classList.add('pressed');
+    if (gameState !== 'playing' || paused) return;
+    if (d.x === -dir.x && d.y === -dir.y) return; // no reversing
+    nextDir = d;
+    if (soundOn) playTone(220, 'sine', 0.03, 0.08); // subtle click
+  }
+
+  function release() { btn.classList.remove('pressed'); }
+
+  btn.addEventListener('touchstart', press, { passive: false });
+  btn.addEventListener('touchend',   release, { passive: true });
+  btn.addEventListener('mousedown',  press);
+  btn.addEventListener('mouseup',    release);
+  btn.addEventListener('mouseleave', release);
 });
 
 // ── Touch / swipe ──
